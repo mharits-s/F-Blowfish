@@ -1,112 +1,109 @@
 from constants import p, s, key
 
-# Initialize the P-array and four S-boxes with a fixed string
-p_new = p.copy()
-
 def swap(a, b):
-    temp = a
-    a = b
-    b = temp
-    return a, b
+    return b, a
+
+def func(L):
+    # F-function as described in the pseudocode
+    a = (L >> 24) & 0xFF
+    b = (L >> 16) & 0xFF
+    c = (L >> 8) & 0xFF
+    d = L & 0xFF
+
+    temp = ((s[0][a] + s[1][b]) % 2**32) ^ s[2][c]
+    temp = (temp + s[3][d]) % 2**32
+
+    return temp
+
+def encryption(data):
+    # Divide the 64-bit input data into two 32-bit halves
+    L = data >> 32
+    R = data & 0xFFFFFFFF
+
+    for i in range(16):
+        # XOR the left half with the current subkey
+        L ^= p[i]
+        # Apply F function to the left half and XOR with the right half
+        L1 = func(L)
+        R ^= L1
+        # Swap the left and right halves
+        L, R = swap(L, R)
+
+    # Swap again before the final round
+    L, R = swap(L, R)
+    # XOR the left half with the 17th subkey
+    L ^= p[17]
+    # XOR the right half with the 16th subkey
+    R ^= p[16]
+
+    # Recombine the left and right halves to get the encrypted data
+    encrypted = (L << 32) ^ R
+    return encrypted
+
+def decrypt_text(encrypted_text):
+    # Decryption of each block and removal of padding
+    decrypted_blocks = [decryption(int.from_bytes(encrypted_text[i:i+8], byteorder='big')) for i in range(0, len(encrypted_text), 8)]
+    decrypted_data = b''.join([block.to_bytes(8, byteorder='big') for block in decrypted_blocks])
+    padding_length = decrypted_data[-1]
+    decrypted_data = decrypted_data[:-padding_length]
+    return decrypted_data.decode('utf-8')
+
+def decryption(data):
+    # Divide the 64-bit input data into two 32-bit halves
+    L = data >> 32
+    R = data & 0xFFFFFFFF
+
+    # Decryption is the reverse of encryption
+    for i in range(17, 1, -1):
+        L ^= p[i]
+        L1 = func(L)
+        R ^= L1
+        L, R = swap(L, R)
+
+    # Final round without swapping
+    L, R = swap(L, R)
+    L ^= p[0]
+    R ^= p[1]
+
+    # Recombine the left and right halves to get the decrypted data
+    decrypted_data = (L << 32) ^ R
+    return decrypted_data
+
+def encrypt_text(text):
+    # Padding the input text and encrypting each block
+    text_bytes = text.encode('utf-8')
+    padding_length = (8 - len(text_bytes) % 8) % 8
+    padded_text = text_bytes + bytes([padding_length]) * padding_length
+
+    encrypted_blocks = [encryption(int.from_bytes(padded_text[i:i+8], byteorder='big')) for i in range(0, len(padded_text), 8)]
+    encrypted_data = b''.join([block.to_bytes(8, byteorder='big') for block in encrypted_blocks])
+
+    return encrypted_data
 
 def driver():
-    # Encrypt the key and P-array to prepare the sub keys
-    generate_subkeys()
+    # Key schedule initialization
+    for i in range(18):
+        p[i] ^= key[i % 14]
 
-    encrypt_data = input("Masukkan Kalimat: ")
-    encrypted_data = encrypt_text(encrypt_data)
-    print("Encrypted data : ", encrypted_data.hex())
-
-    decrypted_data = decrypt_text(encrypted_data)
-    print("Decrypted data : ", decrypted_data)
-
-def generate_subkeys():
-    # Encrypt the P-array values using the F function with four S-boxes
-    for i in range(0, 18):
-        p[i] = p[i] ^ key[i % 14]
-
+    # Generate subkeys
     k = 0
     data = 0
-
     for i in range(9):
         temp = encryption(data)
         p[k] = temp >> 32
         k += 1
-        p[k] = temp & 0xffffffff
+        p[k] = temp & 0xFFFFFFFF
         k += 1
         data = temp
 
-def encryption(data):
-    L = data >> 32
-    R = data & 0xffffffff
+    # Input and encrypt
+    encrypt_data = input("Masukkan Kalimat: ")
+    encrypted_data = encrypt_text(encrypt_data)
+    print("Encrypted data : ", encrypted_data.hex())
 
-    for i in range(16):
-        L = L ^ p[i]
-        L1, R1 = func(L, R)
-        L = R
-        R = L1 ^ R1
+    # Decrypt and display
+    decrypted_data = decrypt_text(encrypted_data)
+    print("Decrypted data : ", decrypted_data)
 
-    L, R = swap(L, R)
-    L = L ^ p[17]
-    R = R ^ p[16]
-
-    encrypted = (L << 32) ^ R
-    return encrypted
-
-def encrypt_text(text):
-    # Konversi teks ke bytes
-    text_bytes = text.encode('utf-8')
-    # Padding jika panjang tidak kelipatan 8
-    padding_length = (8 - len(text_bytes) % 8) % 8
-    padded_text = text_bytes + bytes([padding_length]) * padding_length
-
-    # Proses enkripsi untuk setiap blok
-    encrypted_blocks = [encryption(int.from_bytes(padded_text[i:i+8], byteorder='big')) for i in range(0, len(padded_text), 8)]
-
-    # Menggabungkan hasil enkripsi
-    encrypted_data = b''.join([block.to_bytes(8, byteorder='big') for block in encrypted_blocks])
-    return encrypted_data
-
-def func(L, R):
-    # Divide XR into two 16-bit halves: a, and b
-    a = R >> 16
-    b = R & 0xffff
-
-    # The optimized F function: F(XL) = F(a, b) = (S1 ♁ S2)
-    temp = (s[0][a >> 8] ^ s[1][a & 0xff]) ^ s[2][b >> 8] ^ s[3][b & 0xff]
-
-    return temp, L ^ temp
-
-def decryption(data):
-    L = data >> 32
-    R = data & 0xffffffff
-
-    L = L ^ p[17]
-    R = R ^ p[16]
-
-    L, R = swap(L, R)
-
-    for i in range(15, -1, -1):  
-        L1, R1 = func(L, R)
-        R = L
-        L = L1 ^ p[i] 
-
-    decrypted_data1 = (L << 32) ^ R
-    return decrypted_data1
-
-def decrypt_text(encrypted_text):
-    # Process decryption for each block
-    decrypted_blocks = [decryption(int.from_bytes(encrypted_text[i:i + 8], byteorder='big')) for i in
-                        range(0, len(encrypted_text), 8)]
-
-    # Combine the decryption results
-    decrypted_data = b''.join([block.to_bytes(8, byteorder='big') for block in decrypted_blocks])
-
-    # Remove padding
-    padding_length = decrypted_data[-1]
-    decrypted_data = decrypted_data[:-padding_length]
-
-    # Convert bytes to string
-    return decrypted_data.decode('utf-8')
-
-driver()
+if __name__ == "__main__":
+    driver()
