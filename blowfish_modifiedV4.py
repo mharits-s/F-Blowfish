@@ -1,3 +1,5 @@
+import os
+
 from constants import p, s, key
 
 def swap(a, b):
@@ -42,7 +44,12 @@ def encryption(data):
 
 def encrypt_text(text):
     # Padding the input text and encrypting each block
-    text_bytes = text.encode('utf-8')
+    if isinstance(text, str):
+        text_bytes = text.encode('utf-8')
+    elif isinstance(text, bytes):
+        text_bytes = text
+    else:
+        raise ValueError("Unsupported input type. Please provide a string or bytes.")
     padding_length = (8 - len(text_bytes) % 8) % 8
     padded_text = text_bytes + bytes([padding_length]) * padding_length
 
@@ -80,7 +87,33 @@ def decrypt_text(encrypted_text):
     decrypted_data = decrypted_data[:-padding_length]
     return decrypted_data.decode('utf-8')
 
+def encrypt_file(input_file_path, output_file_path):
+    with open(input_file_path, 'rb') as file:
+        file_data = file.read()
+
+    encrypted_data = encrypt_text(file_data)
+
+    with open(output_file_path, 'wb') as encrypted_file:
+        encrypted_file.write(encrypted_data)
+
+def decrypt_file(input_file_path, output_file_path):
+    with open(input_file_path, 'rb') as encrypted_file:
+        encrypted_data = encrypted_file.read()
+
+    decrypted_data = decrypt_text(encrypted_data)
+
+    # Convert the decrypted string to bytes
+    decrypted_data_bytes = decrypted_data.encode('utf-8')
+
+    with open(output_file_path, 'wb') as decrypted_file:
+        decrypted_file.write(decrypted_data_bytes)
+
+
 def driver():
+    input_file_path = "test.txt"
+    encrypted_output_path = "OutputV4/encrypted_file.bin"
+    decrypted_output_path = "OutputV4/decrypted_file.txt"
+
     # Key schedule initialization
     for i in range(18):
         p[i] ^= key[i % 14]
@@ -96,14 +129,17 @@ def driver():
         k += 1
         data = temp
 
-    # Input and encrypt
-    encrypt_data = input("Masukkan Kalimat: ")
-    encrypted_data = encrypt_text(encrypt_data)
-    print("Encrypted data : ", encrypted_data.hex())
+    # Encrypt file
+    encrypt_file(input_file_path, encrypted_output_path)
+    print(f"File '{input_file_path}' encrypted and saved to '{encrypted_output_path}'")
 
-    # Decrypt and display
-    decrypted_data = decrypt_text(encrypted_data)
-    print("Decrypted data : ", decrypted_data)
+    # Decrypt file
+    decrypt_file(encrypted_output_path, decrypted_output_path)
+    print(f"File '{encrypted_output_path}' decrypted and saved to '{decrypted_output_path}'")
 
 if __name__ == "__main__":
+    # Create the OutputV4 directory if it doesn't exist
+    output_directory = "OutputV4"
+    os.makedirs(output_directory, exist_ok=True)
+
     driver()
