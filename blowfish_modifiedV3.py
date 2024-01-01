@@ -1,10 +1,10 @@
 from constants import p, s, key
+import time
 
 def swap(a, b):
     return b, a
 
 def func(L):
-    # F-function as described in the pseudocode
     a = (L >> 24) & 0xFF
     b = (L >> 16) & 0xFF
     c = (L >> 8) & 0xFF
@@ -16,32 +16,23 @@ def func(L):
     return temp
 
 def encryption(data):
-    # Divide the 64-bit input data into two 32-bit halves
     L = data >> 32
     R = data & 0xFFFFFFFF
 
     for i in range(16):
-        # XOR the left half with the current subkey
         L ^= p[i]
-        # Apply F function to the left half and XOR with the right half
         L1 = func(L)
         R ^= L1
-        # Swap the left and right halves
         L, R = swap(L, R)
 
-    # Swap again before the final round
     L, R = swap(L, R)
-    # XOR the left half with the 17th subkey
     L ^= p[17]
-    # XOR the right half with the 16th subkey
     R ^= p[16]
 
-    # Recombine the left and right halves to get the encrypted data
     encrypted = (L << 32) ^ R
     return encrypted
 
 def encrypt_text(text):
-    # Padding the input text and encrypting each block
     text_bytes = text.encode('utf-8')
     padding_length = (8 - len(text_bytes) % 8) % 8
     padded_text = text_bytes + bytes([padding_length]) * padding_length
@@ -52,28 +43,23 @@ def encrypt_text(text):
     return encrypted_data
 
 def decryption(data):
-    # Divide the 64-bit input data into two 32-bit halves
     L = data >> 32
     R = data & 0xFFFFFFFF
 
-    # Decryption is the reverse of encryption
     for i in range(17, 1, -1):
         L ^= p[i]
         L1 = func(L)
         R ^= L1
         L, R = swap(L, R)
 
-    # Final round without swapping
     L, R = swap(L, R)
     L ^= p[0]
     R ^= p[1]
 
-    # Recombine the left and right halves to get the decrypted data
     decrypted_data = (L << 32) ^ R
     return decrypted_data
 
 def decrypt_text(encrypted_text):
-    # Decryption of each block and removal of padding
     decrypted_blocks = [decryption(int.from_bytes(encrypted_text[i:i+8], byteorder='big')) for i in range(0, len(encrypted_text), 8)]
     decrypted_data = b''.join([block.to_bytes(8, byteorder='big') for block in decrypted_blocks])
     padding_length = decrypted_data[-1]
@@ -81,11 +67,9 @@ def decrypt_text(encrypted_text):
     return decrypted_data.decode('utf-8')
 
 def driver():
-    # Key schedule initialization
     for i in range(18):
         p[i] ^= key[i % 14]
 
-    # Generate subkeys
     k = 0
     data = 0
     for i in range(9):
@@ -96,14 +80,22 @@ def driver():
         k += 1
         data = temp
 
-    # Input and encrypt
     encrypt_data = input("Masukkan Kalimat: ")
+    start_time = time.time()
     encrypted_data = encrypt_text(encrypt_data)
-    print("Encrypted data : ", encrypted_data.hex())
+    end_time = time.time()
+    encryption_time_ms = (end_time - start_time) * 1000
 
-    # Decrypt and display
+    print("Encrypted data : ", encrypted_data.hex())
+    print("Encryption Time: {:.4f} ms".format(encryption_time_ms))
+
+    start_time = time.time()
     decrypted_data = decrypt_text(encrypted_data)
+    end_time = time.time()
+    decryption_time_ms = (end_time - start_time) * 1000
+
     print("Decrypted data : ", decrypted_data)
+    print("Decryption Time: {:.4f} ms".format(decryption_time_ms))
 
 if __name__ == "__main__":
     driver()

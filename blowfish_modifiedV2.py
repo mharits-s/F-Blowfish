@@ -1,4 +1,5 @@
 from constants import p, s, key
+import time
 
 def swap(a, b):
     return b, a
@@ -77,11 +78,23 @@ def driver():
         data = temp
 
     encrypt_data = input("Masukkan Kalimat: ")
+     # Measure encryption time
+    start_time = time.time()
     encrypted_data = encrypt_text(encrypt_data)
-    print("Encrypted data : ", encrypted_data.hex())
+    end_time = time.time()
+    encryption_time_ms = (end_time - start_time) * 1000
 
+    print("Encrypted data : ", encrypted_data.hex())
+    print("Encryption Time: {:.4f} ms".format(encryption_time_ms))
+
+    # Measure decryption time
+    start_time = time.time()
     decrypted_data = decrypt_text(encrypted_data)
+    end_time = time.time()
+    decryption_time_ms = (end_time - start_time) * 1000
+
     print("Decrypted data : ", decrypted_data)
+    print("Decryption Time: {:.4f} ms".format(decryption_time_ms))
 
 if __name__ == "__main__":
     driver()
