@@ -1,3 +1,5 @@
+#Hexadesimal dari pi
+#18 32-bit subkeys
 p = [
       0x243F6A88, 0x85A308D3, 0x13198A2E, 0x03707344,
       0xA4093822, 0x299F31D0, 0x082EFA98, 0xEC4E6C89,
@@ -6,6 +8,8 @@ p = [
       0x9216D5D9, 0x8979FB1B
   ]
 
+
+#256 entries 32-bit S-Boxes
 s = [
       [
           0xD1310BA6, 0x98DFB5AC, 0x2FFD72DB, 0xD01ADFB7,

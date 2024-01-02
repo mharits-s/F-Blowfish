@@ -4,16 +4,32 @@ import time
 def swap(a, b):
     return b, a
 
-def func(L):
-    a = (L >> 24) & 0xFF
-    b = (L >> 16) & 0xFF
-    c = (L >> 8) & 0xFF
-    d = L & 0xFF
+def initialize_constants():
+    for i in range(18):
+        p[i] ^= key[i % 14]
 
-    temp = ((s[0][a] + s[1][b]) % 2**32) ^ s[2][c]
-    temp = (temp + s[3][d]) % 2**32
+def generate_subkeys():
+    k = 0
+    data = 0
+    for i in range(9):
+        temp = encryption(data)
+        p[k] = temp >> 32
+        k += 1
+        p[k] = temp & 0xFFFFFFFF
+        k += 1
+        data = temp
 
-    return temp
+def func(XL, subkey):
+    XR = XL ^ subkey
+    a = (XR >> 24) & 0x03  
+    b = (XR >> 16) & 0xFF
+
+    S1 = s[a][b]
+    S2 = s[(a + 1) % 4][b] 
+
+    result = (S1 ^ S2) << 16 | (S1 + S2) & 0xFFFF
+
+    return result
 
 def encryption(data):
     L = data >> 32
@@ -21,7 +37,7 @@ def encryption(data):
 
     for i in range(16):
         L ^= p[i]
-        L1 = func(L)
+        L1 = func(L, p[i + 1])
         R ^= L1
         L, R = swap(L, R)
 
@@ -48,7 +64,7 @@ def decryption(data):
 
     for i in range(17, 1, -1):
         L ^= p[i]
-        L1 = func(L)
+        L1 = func(L, p[i - 1])
         R ^= L1
         L, R = swap(L, R)
 
@@ -67,21 +83,12 @@ def decrypt_text(encrypted_text):
     return decrypted_data.decode('utf-8')
 
 def driver():
-    for i in range(18):
-        p[i] ^= key[i % 14]
-
-    k = 0
-    data = 0
-    for i in range(9):
-        temp = encryption(data)
-        p[k] = temp >> 32
-        k += 1
-        p[k] = temp & 0xFFFFFFFF
-        k += 1
-        data = temp
+    initialize_constants()
+    generate_subkeys()
 
     encrypt_data = input("Masukkan Kalimat: ")
     start_time = time.time()
+
     encrypted_data = encrypt_text(encrypt_data)
     end_time = time.time()
     encryption_time_ms = (end_time - start_time) * 1000
