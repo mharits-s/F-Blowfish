@@ -5,15 +5,18 @@ def swap(a, b):
     return b, a
 
 def func(L):
-    a = (L >> 24) & 0xFF
-    b = (L >> 16) & 0xFF
-    c = (L >> 8) & 0xFF
-    d = L & 0xFF
+    global s  
+    a = (L >> 16) & 0xFF
+    b = L & 0xFF
 
-    temp = ((s[0][a] + s[1][b]) % 2**32) ^ s[2][c]
-    temp = (temp + s[3][d]) % 2**32
+    S1 = (s[0][a] + s[1][b]) & 0xFFFFFFFF
 
-    return temp
+    S2 = (s[2][a] + s[3][b]) & 0xFFFFFFFF
+
+    # Melakukan XOR antara hasil penggabungan S0/S1 dan S2/S3
+    result = S1 ^ S2
+
+    return result
 
 def encryption(data):
     L = data >> 32
