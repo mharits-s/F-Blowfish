@@ -4,6 +4,21 @@ import time
 def swap(a, b):
     return b, a
 
+def XOR():
+    for i in range(18):
+        p[i] ^= key[i % 14]
+
+def subkeys():
+    k = 0
+    data = 0
+    for i in range(9):
+        temp = encryption(data)
+        p[k] = temp >> 32
+        k += 1
+        p[k] = temp & 0xFFFFFFFF
+        k += 1
+        data = temp
+
 def func(L):
     a = (L >> 24) & 0xFF
     b = (L >> 16) & 0xFF
@@ -67,18 +82,8 @@ def decrypt_text(encrypted_text):
     return decrypted_data.decode('utf-8')
 
 def driver():
-    for i in range(18):
-        p[i] ^= key[i % 14]
-
-    k = 0
-    data = 0
-    for i in range(9):
-        temp = encryption(data)
-        p[k] = temp >> 32
-        k += 1
-        p[k] = temp & 0xFFFFFFFF
-        k += 1
-        data = temp
+    XOR()
+    subkeys()
 
     encrypt_data = input("Masukkan Kalimat: ")
     start_time = time.time()

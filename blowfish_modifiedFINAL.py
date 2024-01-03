@@ -1,23 +1,41 @@
+#Import Constants and time
 from constants import p, s, key
 import time
 
+#Function swap
 def swap(a, b):
     return b, a
 
+#Generate Subkeys
+def XOR():
+    for i in range(18):
+        p[i] ^= key[i % 14]
+
+def subkeys():
+    k = 0
+    data = 0
+    for i in range(9):
+        temp = encryption(data)
+        p[k] = temp >> 32
+        k += 1
+        p[k] = temp & 0xFFFFFFFF
+        k += 1
+        data = temp
+
+#Optimized F-Function
 def func(L):
     global s  
     a = (L >> 16) & 0xFF
     b = L & 0xFF
 
     S1 = (s[0][a] + s[1][b]) & 0xFFFFFFFF
-
     S2 = (s[2][a] + s[3][b]) & 0xFFFFFFFF
 
-    # Melakukan XOR antara hasil penggabungan S0/S1 dan S2/S3
     result = S1 ^ S2
 
     return result
 
+#Function Encryption
 def encryption(data):
     L = data >> 32
     R = data & 0xFFFFFFFF
@@ -35,6 +53,7 @@ def encryption(data):
     encrypted = (L << 32) ^ R
     return encrypted
 
+#Function Encrypt Text
 def encrypt_text(text):
     text_bytes = text.encode('utf-8')
     padding_length = (8 - len(text_bytes) % 8) % 8
@@ -45,6 +64,7 @@ def encrypt_text(text):
 
     return encrypted_data
 
+#Function Decryption
 def decryption(data):
     L = data >> 32
     R = data & 0xFFFFFFFF
@@ -62,6 +82,7 @@ def decryption(data):
     decrypted_data = (L << 32) ^ R
     return decrypted_data
 
+#Function Decrypt Text
 def decrypt_text(encrypted_text):
     decrypted_blocks = [decryption(int.from_bytes(encrypted_text[i:i+8], byteorder='big')) for i in range(0, len(encrypted_text), 8)]
     decrypted_data = b''.join([block.to_bytes((block.bit_length() + 7) // 8, byteorder='big') for block in decrypted_blocks])
@@ -69,19 +90,10 @@ def decrypt_text(encrypted_text):
     decrypted_data = decrypted_data[:-padding_length]
     return decrypted_data.decode('utf-8')
 
+#Function Input Output
 def driver():
-    for i in range(18):
-        p[i] ^= key[i % 14]
-
-    k = 0
-    data = 0
-    for i in range(9):
-        temp = encryption(data)
-        p[k] = temp >> 32
-        k += 1
-        p[k] = temp & 0xFFFFFFFF
-        k += 1
-        data = temp
+    XOR()
+    subkeys()
 
     encrypt_data = input("Masukkan Kalimat: ")
     start_time = time.time()
@@ -100,5 +112,6 @@ def driver():
     print("Decrypted data : ", decrypted_data)
     print("Decryption Time: {:.4f} ms".format(decryption_time_ms))
 
+#Main
 if __name__ == "__main__":
     driver()
